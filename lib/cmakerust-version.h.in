@@ -1,0 +1,29 @@
+/*
+ *  Copyright (C) 2020 Micah Snyder.
+ *
+ *  @GENERATE_WARNING@
+ */
+
+#ifndef __CMAKERUST_VER_H
+#define __CMAKERUST_VER_H
+
+/**
+ * @macro
+ * Version number of the cmakerust library.
+ */
+#define LIBCMAKERUST_VERSION "@LIB_VERSION@"
+
+/**
+ * @macro
+ * Numerical representation of the version number of the cmakerust library.
+ *
+ * This is a 24 bit number with:
+ * - 8 bits for major number
+ * - 8 bits for minor number
+ * - 8 bits for patch number.
+ *
+ * Eg: Version 1.2.3 becomes 0x010203.
+ */
+#define LIBCMAKERUST_VERSION_NUM @LIB_VERSION_NUM@
+
+#endif /* __CMAKERUST_VER_H */

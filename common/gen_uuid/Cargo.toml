@@ -1,0 +1,19 @@
+[package]
+name = "gen_uuid"
+version = "0.1.0"
+authors = ["Micah Snyder <micasnyd@cisco.com>"]
+edition = "2018"
+
+[lib]
+name = "gen_uuid"
+path = "gen_uuid.rs"
+crate-type = ["staticlib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.77"
+
+[dependencies.uuid]
+version = "0.8.1"
+features = ["v4"]

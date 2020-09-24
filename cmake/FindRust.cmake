@@ -74,7 +74,7 @@ function(find_rust_program RUST_PROGRAM)
             RESULT_VARIABLE ${RUST_PROGRAM}_VERSION_RESULT
         )
         if(NOT ${${RUST_PROGRAM}_VERSION_RESULT} EQUAL 0)
-            message(STATUS "Rust program `${RUST_PROGRAM}` not found: Failed to determine version.")
+            message(STATUS "Rust tool `${RUST_PROGRAM}` not found: Failed to determine version.")
             unset(${RUST_PROGRAM}_EXECUTABLE)
         else()
             string(REGEX
@@ -82,15 +82,15 @@ function(find_rust_program RUST_PROGRAM)
                 ${RUST_PROGRAM}_VERSION "${${RUST_PROGRAM}_VERSION_OUTPUT}"
             )
             set(${RUST_PROGRAM}_VERSION "${${RUST_PROGRAM}_VERSION}" PARENT_SCOPE)
-            message(STATUS "Rust program `${RUST_PROGRAM}` found: ${${RUST_PROGRAM}_EXECUTABLE}, ${${RUST_PROGRAM}_VERSION}")
+            message(STATUS "Rust tool `${RUST_PROGRAM}` found: ${${RUST_PROGRAM}_EXECUTABLE}, ${${RUST_PROGRAM}_VERSION}")
         endif()
 
         mark_as_advanced(${RUST_PROGRAM}_EXECUTABLE ${RUST_PROGRAM}_VERSION)
     else()
         if(${${RUST_PROGRAM}_REQUIRED})
-            message(FATAL_ERROR "Rust program `${RUST_PROGRAM}` not found.")
+            message(FATAL_ERROR "Rust tool `${RUST_PROGRAM}` not found.")
         else()
-            message(STATUS "Rust program `${RUST_PROGRAM}` not found.")
+            message(STATUS "Rust tool `${RUST_PROGRAM}` not found.")
         endif()
     endif()
 endfunction()
@@ -136,7 +136,7 @@ function(add_rust_library)
         DEPENDS ${OUTPUT})
 
     # Determine native static lib dependencies
-    message(STATUS "COMMAND: ${cargo_EXECUTABLE} rustc -- --print native-static-libs")
+    #message(STATUS "Detecting native static libs for '${ARGS_TARGET}': ${cargo_EXECUTABLE} rustc -- --print native-static-libs")
     execute_process(
         COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${cargo_EXECUTABLE} rustc -- --print native-static-libs
         WORKING_DIRECTORY ${ARGS_WORKING_DIRECTORY}
@@ -151,7 +151,7 @@ function(add_rust_library)
     string(REGEX REPLACE " $" "" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
     string(REGEX REPLACE "\n" "" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
     string(REGEX REPLACE " " ";" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-    message(STATUS "${ARGS_TARGET} native static library dependencies: ${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
+    message(STATUS "Rust lib `${ARGS_TARGET}`'s native static libs: ${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
 
     # Create a static imported library target from library target
     add_library(${ARGS_TARGET} STATIC IMPORTED GLOBAL)
@@ -163,6 +163,18 @@ function(add_rust_library)
         PROPERTIES
             IMPORTED_LOCATION "${OUTPUT}"
             INTERFACE_INCLUDE_DIRECTORIES "${ARGS_WORKING_DIRECTORY}"
+    )
+endfunction()
+
+function(add_rust_test)
+    set(options)
+    set(oneValueArgs NAME WORKING_DIRECTORY)
+    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    add_test(
+        NAME test-${ARGS_NAME}
+        COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${cargo_EXECUTABLE} test -vv --color always
+        WORKING_DIRECTORY ${ARGS_WORKING_DIRECTORY}
     )
 endfunction()
 

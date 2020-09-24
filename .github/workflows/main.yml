@@ -34,11 +34,16 @@ jobs:
         with:
           cmakeGenerator: 'Ninja'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
-          buildDirectory: '${{ runner.workspace }}/b/ninja/'
+          buildDirectory: '${{ runner.workspace }}/build/ninja/'
+
+      - name: Run tests
+        working-directory: '${{ runner.workspace }}/build/ninja/'
+        run: |
+          ctest -VV
 
       - name: Run the app
         run: |
-          ${{ runner.workspace }}/b/ninja/app/app
+          ${{ runner.workspace }}/build/ninja/app/app
 
   build_and_test_windows:
     name: 'windows-latest: build and test'
@@ -60,8 +65,13 @@ jobs:
         with:
           cmakeGenerator: 'VS16Win64'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
-          buildDirectory: '${{ runner.workspace }}/b/vs2019/'
+          buildDirectory: '${{ runner.workspace }}/build/vs2019/'
+
+      - name: Run tests
+        working-directory: '${{ runner.workspace }}/build/vs2019/'
+        run: |
+          ctest -VV -C Debug
 
       - name: Run the app
         run: |
-          ${{ runner.workspace }}\\b\\vs2019\\app\\Debug\\app.exe
+          ${{ runner.workspace }}\\build\\vs2019\\app\\Debug\\app.exe

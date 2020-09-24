@@ -16,11 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
       - name: rust-toolchain
@@ -37,3 +35,25 @@ jobs:
           cmakeGenerator: 'Ninja'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
           buildDirectory: '${{ runner.workspace }}/b/ninja/'
+
+  build_and_test_windows:
+    name: 'windows-latest: build and test'
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: rust-toolchain
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable-x86_64-unknown-linux-gnu
+
+      - name: get-cmake
+        uses: lukka/get-cmake@v3.18.0
+
+      - name: run-cmake
+        uses: lukka/run-cmake@v3.0
+        with:
+          cmakeGenerator: 'VS16Win64'
+          cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
+          buildDirectory: '${{ runner.workspace }}/b/vs2019/'

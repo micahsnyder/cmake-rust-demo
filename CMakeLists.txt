@@ -24,6 +24,12 @@ find_package(Rust REQUIRED)
 # Always use '-fPIC'/'-fPIE' option.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Enable CTest
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)
+    enable_testing()
+endif()
+
 #
 # Build targets.
 #

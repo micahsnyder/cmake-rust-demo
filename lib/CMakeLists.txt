@@ -11,6 +11,7 @@ configure_file(cmakerust-version.h.in cmakerust-version.h)
 
 # Colorful Logging
 add_rust_library(TARGET colorlog WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/colorlog")
+add_rust_test(NAME colorlog WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/colorlog")
 
 configure_file(cmakerust-version.h.in cmakerust-version.h)
 

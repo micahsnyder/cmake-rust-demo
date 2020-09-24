@@ -36,6 +36,10 @@ jobs:
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
           buildDirectory: '${{ runner.workspace }}/b/ninja/'
 
+      - name: Run the app
+        run: |
+          ${{ runner.workspace }}/b/ninja/app/app
+
   build_and_test_windows:
     name: 'windows-latest: build and test'
     runs-on: windows-latest
@@ -57,3 +61,7 @@ jobs:
           cmakeGenerator: 'VS16Win64'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
           buildDirectory: '${{ runner.workspace }}/b/vs2019/'
+
+      - name: Run the app
+        run: |
+          ${{ runner.workspace }}\\b\\vs2019\\app\\Debug\\app.exe

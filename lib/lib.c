@@ -12,9 +12,9 @@
 #include "colorlog.h"
 
 void cmakerust_init() {
-    clog_debug(init_message, strlen(init_message));
+    clog_debug((const uint8_t *)init_message, strlen(init_message));
 }
 
 void cmakerust_fini() {
-    clog_debug(fini_message, strlen(fini_message));
+    clog_debug((const uint8_t *)fini_message, strlen(fini_message));
 }

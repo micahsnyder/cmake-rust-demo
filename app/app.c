@@ -16,11 +16,11 @@ int main(void) {
 
     my_uuid = gen_uuid();
 
-    printf("%s\n", (char*)my_uuid);
-    clog_debug((char*)my_uuid, strlen(my_uuid));
-    clog_info((char*)my_uuid, strlen(my_uuid));
-    clog_warning((char*)my_uuid, strlen(my_uuid));
-    clog_error((char*)my_uuid, strlen(my_uuid));
+    printf("%s\n", my_uuid);
+    clog_debug((const uint8_t *)my_uuid, strlen(my_uuid));
+    clog_info((const uint8_t *)my_uuid, strlen(my_uuid));
+    clog_warning((const uint8_t *)my_uuid, strlen(my_uuid));
+    clog_error((const uint8_t *)my_uuid, strlen(my_uuid));
 
     free_uuid(my_uuid);
 

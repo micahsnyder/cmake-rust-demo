@@ -1,0 +1,39 @@
+name: Build Test
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build_and_test:
+    name: '${{ matrix.os }}: build and test'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: rust-toolchain
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable-x86_64-unknown-linux-gnu
+
+      - name: get-cmake
+        uses: lukka/get-cmake@v3.18.0
+
+      - name: run-cmake
+        uses: lukka/run-cmake@v3.0
+        with:
+          cmakeGenerator: 'Ninja'
+          cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
+          buildDirectory: '${{ runner.workspace }}/b/ninja/'

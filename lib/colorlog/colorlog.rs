@@ -4,8 +4,6 @@
  * Copyright (C) 2020 Micah Snyder.
  */
 
-#![feature(c_variadic)]
-
 use colored::*;
 
 enum LogLevel {

@@ -33,6 +33,16 @@ add_rust_library( TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/
 add_rust_test( NAME yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib" )
 ```
 
+And don't forget to enable CTest early in your top-level `CMakeLists.txt` file:
+
+```cmake
+# Enable CTest
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)
+    enable_testing()
+endif()
+```
+
 ## `cbindgen` C API generation support
 
 If you set `cbindgen_REQUIRED` as shown above, then `cbindgen` will need to be installed. It will also require a `cbindgen.toml` file next to each `Cargo.toml`.

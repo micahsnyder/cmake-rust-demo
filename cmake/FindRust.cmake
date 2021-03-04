@@ -1,7 +1,10 @@
 # Find the Rust toolchain and add the `add_rust_library()` API to build Rust
 # libraries.
 #
-# Copyright (C) 2020 Micah Snyder.
+# Copyright (C) 2020-2021 Micah Snyder.
+#
+# Author: Micah Snyder
+# To see this in a sample project, visit: https://github.com/micahsnyder/cmake-rust-demo
 #
 # Code to set the Cargo arguments was lifted from:
 #   https://github.com/Devolutions/CMakeRust
@@ -23,7 +26,8 @@
 #  - cbindgen
 #
 # Note that `cbindgen` is presently 3rd-party, and is not included with the
-# standard Rust installation.
+# standard Rust installation. `bindgen` is a part of the rust toolchain, but
+# might need to be installed separately.
 #
 # Callers can make any program mandatory by setting `<program>_REQUIRED` before
 # the call to `find_package(Rust)`
@@ -32,6 +36,7 @@
 #
 #    if(MAINTAINER_MODE)
 #        set(cbindgen_REQUIRED 1)
+#        set(bindgen_REQUIRED 1)
 #    endif()
 #    find_package(Rust REQUIRED)
 #
@@ -40,7 +45,7 @@
 # `target_link_libraries()`.
 #
 # Your Rust static library target will itself depend on the native static libs
-# you get from `cargo rustc -- --print native-static-libs`
+# you get from `rustc --crate-type staticlib --print=native-static-libs /dev/null`
 #
 # Example `add_rust_library()` usage:
 #
@@ -135,28 +140,10 @@ function(add_rust_library)
     add_custom_target(${ARGS_TARGET}_target
         DEPENDS ${OUTPUT})
 
-    # Determine native static lib dependencies
-    #message(STATUS "Detecting native static libs for '${ARGS_TARGET}': ${cargo_EXECUTABLE} rustc -- --print native-static-libs")
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${cargo_EXECUTABLE} rustc -- --print native-static-libs
-        WORKING_DIRECTORY ${ARGS_WORKING_DIRECTORY}
-        OUTPUT_VARIABLE ${ARGS_TARGET}_NATIVE_STATIC_LIBS_OUTPUT
-        ERROR_VARIABLE  ${ARGS_TARGET}_NATIVE_STATIC_LIBS_ERROR
-        RESULT_VARIABLE ${ARGS_TARGET}_NATIVE_STATIC_LIBS_RESULT
-    )
-    string(REGEX MATCH "native-static-libs: .*Finished" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS_ERROR}")
-    string(REPLACE "native-static-libs: " "" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-    string(REPLACE "Finished" "" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-    string(REGEX REPLACE "  " "" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-    string(REGEX REPLACE " $" "" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-    string(REGEX REPLACE "\n" "" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-    string(REGEX REPLACE " " ";" ${ARGS_TARGET}_NATIVE_STATIC_LIBS "${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-    message(STATUS "Rust lib `${ARGS_TARGET}`'s native static libs: ${${ARGS_TARGET}_NATIVE_STATIC_LIBS}")
-
     # Create a static imported library target from library target
     add_library(${ARGS_TARGET} STATIC IMPORTED GLOBAL)
     add_dependencies(${ARGS_TARGET} ${ARGS_TARGET}_target)
-    target_link_libraries(${ARGS_TARGET} INTERFACE ${${ARGS_TARGET}_NATIVE_STATIC_LIBS})
+    target_link_libraries(${ARGS_TARGET} INTERFACE ${RUST_NATIVE_STATIC_LIBS})
 
     # Specify where the library is and where to find the headers
     set_target_properties(${ARGS_TARGET}
@@ -193,6 +180,31 @@ find_rust_program(rustdoc)
 find_rust_program(rustfmt)
 find_rust_program(bindgen)
 find_rust_program(cbindgen)
+
+# Determine the native libs required to link w/ rust static libs
+# message(STATUS "Detecting native static libs for rust: ${rustc_EXECUTABLE} --crate-type staticlib --print=native-static-libs /dev/null")
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${rustc_EXECUTABLE} --crate-type staticlib --print=native-static-libs /dev/null
+    OUTPUT_VARIABLE RUST_NATIVE_STATIC_LIBS_OUTPUT
+    ERROR_VARIABLE  RUST_NATIVE_STATIC_LIBS_ERROR
+    RESULT_VARIABLE RUST_NATIVE_STATIC_LIBS_RESULT
+)
+string(REGEX REPLACE "\r?\n" ";" LINE_LIST "${RUST_NATIVE_STATIC_LIBS_ERROR}")
+foreach(LINE ${LINE_LIST})
+    # do the match on each line
+    string(REGEX MATCH "native-static-libs: .*" LINE "${LINE}")
+    if(NOT LINE)
+        continue()
+    endif()
+    string(REPLACE "native-static-libs: " "" LINE "${LINE}")
+    string(REGEX REPLACE "  " "" LINE "${LINE}")
+    string(REGEX REPLACE " " ";" LINE "${LINE}")
+    if(LINE)
+        message(STATUS "Rust's native static libs: ${LINE}")
+        set(RUST_NATIVE_STATIC_LIBS "${LINE}")
+        break()
+    endif()
+endforeach()
 
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)

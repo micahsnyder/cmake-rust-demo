@@ -27,10 +27,10 @@ jobs:
           toolchain: stable-x86_64-unknown-linux-gnu
 
       - name: get-cmake
-        uses: lukka/get-cmake@v3.18.0
+        uses: lukka/get-cmake@latest
 
       - name: run-cmake
-        uses: lukka/run-cmake@v3.0
+        uses: lukka/run-cmake@latest
         with:
           cmakeGenerator: 'Ninja'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
@@ -58,10 +58,10 @@ jobs:
           toolchain: stable-x86_64-unknown-linux-gnu
 
       - name: get-cmake
-        uses: lukka/get-cmake@v3.18.0
+        uses: lukka/get-cmake@latest
 
       - name: run-cmake
-        uses: lukka/run-cmake@v3.0
+        uses: lukka/run-cmake@latest
         with:
           cmakeGenerator: 'VS16Win64'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'

@@ -23,6 +23,9 @@ target_sources( cmakerust_obj
     PRIVATE     lib.c   lib_private.h
     PUBLIC      cmakerust.h )
 target_link_libraries( cmakerust_obj PUBLIC colorlog )
+if(WIN32)
+    target_link_libraries( cmakerust_obj PUBLIC Userenv wsock32 ws2_32 )
+endif()
 target_include_directories( cmakerust_obj PUBLIC ${CMAKE_CURRENT_BINARY_DIR} )
 
 # The cmakerust shared library.

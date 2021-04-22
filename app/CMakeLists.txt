@@ -12,3 +12,8 @@ target_link_libraries( app
     PRIVATE
         CMakeRust::lib
         CMakeRust::gen_uuid )
+if(WIN32)
+    target_link_libraries( app
+        PRIVATE
+            Bcrypt )
+endif()

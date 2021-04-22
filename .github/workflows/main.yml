@@ -30,7 +30,7 @@ jobs:
         uses: lukka/get-cmake@latest
 
       - name: run-cmake
-        uses: lukka/run-cmake@latest
+        uses: lukka/run-cmake@v3.0
         with:
           cmakeGenerator: 'Ninja'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
@@ -61,7 +61,7 @@ jobs:
         uses: lukka/get-cmake@latest
 
       - name: run-cmake
-        uses: lukka/run-cmake@latest
+        uses: lukka/run-cmake@v3.0
         with:
           cmakeGenerator: 'VS16Win64'
           cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'

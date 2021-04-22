@@ -47,6 +47,51 @@ endif()
 
 If you set `cbindgen_REQUIRED` as shown above, then `cbindgen` will need to be installed. It will also require a `cbindgen.toml` file next to each `Cargo.toml`.
 
+## Building this project
+
+Requirements:
+- CMake 3.18+
+- The Rust toolchain (Cargo, etc)
+
+Run:
+```bash
+mkdir build && cd build
+cmake .. && cmake --build . && ctest
+```
+
+## Vendoring dependencies
+
+For building a source package with CPack (E.g., the `TGZ` package archive generator), you may wish to vendor the Cargo dependencies so your users can do offline builds when using your source package.
+
+The `FindRust.cmake` module makes that easy. Simply define `VENDOR_DEPENDENCIES=ON` and it will run `cargo vendor` during the configuration stage. The dependencies and assocaited `config.toml` file, instructing cargo to use the vendored dependencies, will be placed in a `.cargo` directory next to each of your `Cargo.toml` files.
+
+Example building a source tarball with vendored dependencies:
+```bash
+mkdir build && cd build
+cmake .. -D VENDOR_DEPENDENCIES=ON && cpack --config CPackSourceConfig.cmake
+```
+
+Afterwards, you should have a source package (E.g., `cmake-rust-0.1.0.tar.gz`) containing the project with vendored dependencies in your working directory, and if you run `git status`, you'll see the `.cargo` directories:
+```bash
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        ../common/gen_uuid/.cargo/
+        ../lib/colorlog/.cargo/
+```
+
+At this point you could do something like this, to see it build w/out downloading the crates:
+```bash
+tar xzf cmake-rust-0.1.0.tar.gz
+cd cmake-rust-0.1.0
+mkdir build && cd build
+cmake .. && cmake --build . && ctest
+```
+
+You'll note that the vendored dependencies appear in your source directory. To remove them, you can do this:
+```bash
+rm -rf **/.cargo
+```
+
 ## License
 
 This project is dual-licensed under MIT and Apache 2.0.

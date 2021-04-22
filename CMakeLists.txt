@@ -30,6 +30,17 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     enable_testing()
 endif()
 
+# Enable source packages with CTest
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME cmake-rust-${PROJECT_VERSION})
+set(CPACK_SOURCE_IGNORE_FILES
+    \\.git/
+    build/
+    ".*~$"
+)
+set(CPACK_VERBATIM_VARIABLES YES)
+include(CPack)
+
 #
 # Build targets.
 #

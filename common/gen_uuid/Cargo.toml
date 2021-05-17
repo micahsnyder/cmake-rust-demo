@@ -12,7 +12,7 @@ version = "0.8.1"
 features = ["v4"]
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "lib"]
 name = "gen_uuid"
 
 [build-dependencies]

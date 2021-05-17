@@ -1,0 +1,11 @@
+[package]
+authors = ["Micah Snyder"]
+edition = "2021"
+name = "app_rust"
+version = "0.1.0"
+
+[dependencies]
+gen_uuid = { path = "../common/gen_uuid" }
+
+[build-dependencies]
+bindgen = "0.59"

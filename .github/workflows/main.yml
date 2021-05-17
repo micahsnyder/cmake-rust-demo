@@ -32,7 +32,7 @@ jobs:
       - name: Build project
         working-directory: "${{ runner.workspace }}/"
         run: |
-          cmake -B ./build -S ./cmake-rust-demo
+          cmake -B ./build -S ./cmake-rust-demo -D CMAKE_INSTALL_PREFIX=${{ runner.workspace }}/install
           cmake --build ./build
 
       - name: Run tests
@@ -40,9 +40,18 @@ jobs:
         run: |
           ctest -VV
 
-      - name: Run the app
+      - name: Install project
+        working-directory: "${{ runner.workspace }}/"
         run: |
-          ${{ runner.workspace }}/build/app/app
+          cmake --build ./build --target install
+
+      - name: Run the C app
+        run: |
+          ${{ runner.workspace }}/install/bin/app_c
+
+      - name: Run the Rust app
+        run: |
+          ${{ runner.workspace }}/install/bin/app_rust
 
   build_and_test_windows:
     name: "windows-latest: build and test"
@@ -62,7 +71,7 @@ jobs:
       - name: Build project
         working-directory: "${{ runner.workspace }}/"
         run: |
-          cmake -B ./build -S ./cmake-rust-demo -A x64
+          cmake -B ./build -S ./cmake-rust-demo -A x64 -D CMAKE_INSTALL_PREFIX=${{ runner.workspace }}/install
           cmake --build ./build
 
       - name: Run tests
@@ -70,6 +79,15 @@ jobs:
         run: |
           ctest -VV -C Debug
 
-      - name: Run the app
+      - name: Install project
+        working-directory: "${{ runner.workspace }}/"
         run: |
-          ${{ runner.workspace }}\\build\\app\\Debug\\app.exe
+          cmake --build ./build --target install
+
+      - name: Run the C app
+        run: |
+          ${{ runner.workspace }}\\install\\bin\\app_c.exe
+
+      - name: Run the Rust app
+        run: |
+          ${{ runner.workspace }}\\install\\bin\\app_rust.exe

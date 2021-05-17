@@ -131,10 +131,19 @@ or:
 install(TARGETS app DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT programs)
 ```
 
-Rust library CMake targets aren't normal CMake binary targets though. They're "custom" targets, which means you will instead have to use `install(FILES` instead of `install(TARGETS`, and then point CMake at the specific file you need installed instead of at a target. Our `FindRust.cmake`'s `add_rust_library()` function makes this easy. WHen you add a Rust library, it sets the target properties such that you can simply use CMake's `$<TARGET_FILE:target>` [generator expression](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html) to provide the file path. In this demo, we configure installation for our `demorust` Rust static library like this:
+Rust library CMake targets aren't normal CMake binary targets though. They're "custom" targets, which means you will instead have to use `install(FILES` instead of `install(TARGETS`, and then point CMake at the specific file you need installed instead of at a target. Our `FindRust.cmake`'s `add_rust_library()` function makes this easy. WHen you add a Rust library, it sets the target properties such that you can simply use CMake's `$<TARGET_FILE:target>` [generator expression](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html) to provide the file path. 
+
+In this demo, we configure installation for our `demorust` Rust static library like this:
 ```c
 install(FILES $<TARGET_FILE:demorust> DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries)
 ```
+
+And for our `app_rust` Rust executable, we install like this:
+```c
+get_target_property(app_rust_EXECUTABLE app_rust IMPORTED_LOCATION)
+install(PROGRAMS ${app_rust_EXECUTABLE} DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT programs)
+```
+Note that we have to get the `IMPORTED_LOCATION` manually for the executable.
 
 ## License
 

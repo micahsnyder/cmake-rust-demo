@@ -1,0 +1,6 @@
+[workspace]
+
+members = ["lib/rust", "common/gen_uuid"]
+
+[profile.dev.package."*"]
+opt-level = 2

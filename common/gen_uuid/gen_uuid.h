@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-
 void free_uuid(char *uuid_ptr);
 
 char *gen_uuid(void);

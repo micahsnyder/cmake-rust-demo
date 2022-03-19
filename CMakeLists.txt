@@ -1,10 +1,11 @@
-# Copyright (C) 2020 Micah Snyder.
+# Copyright (C) 2020-2022 Micah Snyder.
 
 cmake_minimum_required(VERSION 3.18)
+set(RUSTC_MINIMUM_REQUIRED 1.56)
 
-project( RustCMakeDemo
-         VERSION "0.1.0"
-         DESCRIPTION "A demo app to show a CMake project with components written in Rust." )
+project(RustCMakeDemo
+        VERSION "0.2.0"
+        DESCRIPTION "A demo app to show a CMake project with components written in Rust.")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
@@ -16,13 +17,13 @@ option(MAINTAINER_MODE
     "Use `cbindgen` to generate Rust library API headers."
     ${MAINTAINER_MODE_DEFAULT})
 
-if(MAINTAINER_MODE)
-    set(cbindgen_REQUIRED 1)
-endif()
 find_package(Rust REQUIRED)
 
 # Always use '-fPIC'/'-fPIE' option.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Include GNUInstallDirs for access to CMAKE_INSTALL_LIBDIR, etc
+include(GNUInstallDirs)
 
 # Enable CTest
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
@@ -44,9 +45,10 @@ include(CPack)
 #
 # Build targets.
 #
-add_subdirectory( lib )
-add_subdirectory( common )
-add_subdirectory( app )
+add_subdirectory(lib)
+add_subdirectory(common)
+add_subdirectory(app)
+add_subdirectory(test)
 
 #
 # The Summary Info.
@@ -58,10 +60,7 @@ message(STATUS "Configuration Options Summary --
         Build type:         ${CMAKE_BUILD_TYPE}
         C compiler:         ${CMAKE_C_COMPILER}
         Rust toolchain:     ${cargo_EXECUTABLE} (${cargo_VERSION})
+                            ${rustc_EXECUTABLE} (${rustc_VERSION})
         CFLAGS:             ${CMAKE_C_FLAGS_${_build_type}} ${CMAKE_C_FLAGS}
     Build Options:
         Maintainer Mode:    ${MAINTAINER_MODE}")
-if(MAINTAINER_MODE)
-message("\
-        cbindgen:           ${cbindgen_EXECUTABLE} (${cbindgen_VERSION})")
-endif()

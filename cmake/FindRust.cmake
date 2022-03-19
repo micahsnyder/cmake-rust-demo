@@ -1,7 +1,7 @@
 # Find the Rust toolchain and add the `add_rust_library()` API to build Rust
 # libraries.
 #
-# Copyright (C) 2020-2021 Micah Snyder.
+# Copyright (C) 2020-2022 Micah Snyder.
 #
 # Author: Micah Snyder
 # To see this in a sample project, visit: https://github.com/micahsnyder/cmake-rust-demo
@@ -23,37 +23,42 @@
 #  - rustdoc
 #  - rustfmt
 #  - bindgen
-#  - cbindgen
-#
-# Note that `cbindgen` is presently 3rd-party, and is not included with the
-# standard Rust installation. `bindgen` is a part of the rust toolchain, but
-# might need to be installed separately.
 #
 # Callers can make any program mandatory by setting `<program>_REQUIRED` before
 # the call to `find_package(Rust)`
 #
 # Eg:
-#
-#    if(MAINTAINER_MODE)
-#        set(cbindgen_REQUIRED 1)
-#        set(bindgen_REQUIRED 1)
-#    endif()
 #    find_package(Rust REQUIRED)
 #
-# This module also provides an `add_rust_library()` function which allows a
-# caller to create a Rust static library target which you can link to with
-# `target_link_libraries()`.
+# This module also provides:
 #
-# Your Rust static library target will itself depend on the native static libs
-# you get from `rustc --crate-type staticlib --print=native-static-libs /dev/null`
+#  - `add_rust_library()` - This allows a caller to create a Rust static library
+#   target which you can link to with `target_link_libraries()`.
 #
-# Example `add_rust_library()` usage:
+#   Your Rust static library target will itself depend on the native static libs
+#   you get from `rustc --crate-type staticlib --print=native-static-libs /dev/null`
 #
-#    add_rust_library(TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-#    add_library(YourProject::yourlib ALIAS yourlib)
+#   The CARGO_CMD environment variable will be set to "BUILD" so you can tell
+#   it's not building the unit tests inside your (optional) `build.rs` file.
 #
-#    add_executable(yourexe)
-#    target_link_libraries(yourexe YourProject::yourlib)
+#   Example `add_rust_library()` usage:
+#
+#       add_rust_library(TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+#       add_library(YourProject::yourlib ALIAS yourlib)
+#
+#       add_executable(yourexe)
+#       target_link_libraries(yourexe YourProject::yourlib)
+#
+#  - `add_rust_test()` - This allows a caller to run `cargo test` for a specific
+#    Rust target as a CTest test.
+#
+#   The CARGO_CMD environment variable will be set to "TEST" so you can tell
+#   it's not building the unit tests inside your (optional) `build.rs` file.
+#
+#   Example `add_rust_library()` usage:
+#
+#       add_rust_test(NAME yourlib WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/yourlib")
+#       set_property(TEST yourlib PROPERTY ENVIRONMENT ${ENVIRONMENT})
 #
 
 if(NOT DEFINED CARGO_HOME)
@@ -141,9 +146,9 @@ function(add_rust_library)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if(WIN32)
-        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${LIB_TARGET}/${LIB_BUILD_TYPE}/${ARGS_TARGET}.lib")
+        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${LIB_BUILD_TYPE}/${ARGS_TARGET}.lib")
     else()
-        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${LIB_TARGET}/${LIB_BUILD_TYPE}/lib${ARGS_TARGET}.a")
+        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${LIB_BUILD_TYPE}/lib${ARGS_TARGET}.a")
     endif()
 
     file(GLOB_RECURSE LIB_SOURCES "${ARGS_WORKING_DIRECTORY}/*.rs")
@@ -152,22 +157,24 @@ function(add_rust_library)
     list(APPEND MY_CARGO_ARGS "--target-dir" ${CMAKE_CURRENT_BINARY_DIR})
     list(JOIN MY_CARGO_ARGS " " MY_CARGO_ARGS_STRING)
 
-    # Build the library and generate the c-binding, if `cbindgen` is required.
-    if(${cbindgen_REQUIRED})
+    # Build the library and generate the c-binding
+    if("${CMAKE_OSX_ARCHITECTURES}" MATCHES "^arm64;x86_64$")
         add_custom_command(
             OUTPUT "${OUTPUT}"
-            COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${cargo_EXECUTABLE} ARGS ${MY_CARGO_ARGS}
-            COMMAND ${cbindgen_EXECUTABLE} --lang c -o ${ARGS_WORKING_DIRECTORY}/${ARGS_TARGET}.h ${ARGS_WORKING_DIRECTORY}
+            COMMAND ${CMAKE_COMMAND} -E env "CARGO_CMD=build" "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" "MAINTAINER_MODE=${MAINTAINER_MODE}" "RUSTFLAGS=\"${RUSTFLAGS}\"" ${cargo_EXECUTABLE} ARGS ${MY_CARGO_ARGS} --target=x86_64-apple-darwin
+            COMMAND ${CMAKE_COMMAND} -E env "CARGO_CMD=build" "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" "MAINTAINER_MODE=${MAINTAINER_MODE}" "RUSTFLAGS=\"${RUSTFLAGS}\"" ${cargo_EXECUTABLE} ARGS ${MY_CARGO_ARGS} --target=aarch64-apple-darwin
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${LIB_BUILD_TYPE}"
+            COMMAND lipo ARGS -create ${CMAKE_CURRENT_BINARY_DIR}/x86_64-apple-darwin/${LIB_BUILD_TYPE}/lib${ARGS_TARGET}.a ${CMAKE_CURRENT_BINARY_DIR}/aarch64-apple-darwin/${LIB_BUILD_TYPE}/lib${ARGS_TARGET}.a -output "${OUTPUT}"
             WORKING_DIRECTORY "${ARGS_WORKING_DIRECTORY}"
             DEPENDS ${LIB_SOURCES}
-            COMMENT "Building ${ARGS_TARGET} in ${ARGS_WORKING_DIRECTORY} with:\n\t ${cargo_EXECUTABLE} ${MY_CARGO_ARGS_STRING}")
+            COMMENT "Building ${ARGS_TARGET} in ${ARGS_WORKING_DIRECTORY} with:  ${cargo_EXECUTABLE} ${MY_CARGO_ARGS_STRING}")
     else()
         add_custom_command(
             OUTPUT "${OUTPUT}"
-            COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${cargo_EXECUTABLE} ARGS ${MY_CARGO_ARGS}
+            COMMAND ${CMAKE_COMMAND} -E env "CARGO_CMD=build" "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" "MAINTAINER_MODE=${MAINTAINER_MODE}" "RUSTFLAGS=\"${RUSTFLAGS}\"" ${cargo_EXECUTABLE} ARGS ${MY_CARGO_ARGS}
             WORKING_DIRECTORY "${ARGS_WORKING_DIRECTORY}"
             DEPENDS ${LIB_SOURCES}
-            COMMENT "Building ${ARGS_TARGET} in ${ARGS_WORKING_DIRECTORY} with:\n\t ${cargo_EXECUTABLE} ${MY_CARGO_ARGS_STRING}")
+            COMMENT "Building ${ARGS_TARGET} in ${ARGS_WORKING_DIRECTORY} with:  ${cargo_EXECUTABLE} ${MY_CARGO_ARGS_STRING}")
     endif()
 
     # Create a target from the build output
@@ -183,7 +190,7 @@ function(add_rust_library)
     set_target_properties(${ARGS_TARGET}
         PROPERTIES
             IMPORTED_LOCATION "${OUTPUT}"
-            INTERFACE_INCLUDE_DIRECTORIES "${ARGS_WORKING_DIRECTORY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${ARGS_WORKING_DIRECTORY};${CMAKE_CURRENT_BINARY_DIR}"
     )
 
     # Vendor the dependencies, if desired
@@ -197,9 +204,21 @@ function(add_rust_test)
     set(oneValueArgs NAME WORKING_DIRECTORY)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
+    set(MY_CARGO_ARGS "test")
+    if(NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "^arm64;x86_64$") #  Don't specify the target for universal, we'll do that manually for each build.
+        list(APPEND MY_CARGO_ARGS "--target" ${RUST_COMPILER_TARGET})
+    endif()
+
+    if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+        list(APPEND MY_CARGO_ARGS "--release")
+    endif()
+
+    list(APPEND MY_CARGO_ARGS "--target-dir" ${CMAKE_CURRENT_BINARY_DIR})
+    list(JOIN MY_CARGO_ARGS " " MY_CARGO_ARGS_STRING)
+
     add_test(
-        NAME test-${ARGS_NAME}
-        COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${cargo_EXECUTABLE} test -vv --color always
+        NAME ${ARGS_NAME}
+        COMMAND ${CMAKE_COMMAND} -E env "CARGO_CMD=test" "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${cargo_EXECUTABLE} ${MY_CARGO_ARGS} --color always
         WORKING_DIRECTORY ${ARGS_WORKING_DIRECTORY}
     )
 endfunction()
@@ -218,7 +237,11 @@ find_rust_program(rust-lldb)
 find_rust_program(rustdoc)
 find_rust_program(rustfmt)
 find_rust_program(bindgen)
-find_rust_program(cbindgen)
+
+if(RUSTC_MINIMUM_REQUIRED AND rustc_VERSION VERSION_LESS RUSTC_MINIMUM_REQUIRED)
+    message(FATAL_ERROR "Your Rust toolchain is to old to build this project:
+    ${rustc_VERSION} < ${RUSTC_MINIMUM_REQUIRED}")
+endif()
 
 # Determine the native libs required to link w/ rust static libs
 # message(STATUS "Detecting native static libs for rust: ${rustc_EXECUTABLE} --crate-type staticlib --print=native-static-libs /dev/null")
@@ -245,51 +268,52 @@ foreach(LINE ${LINE_LIST})
     endif()
 endforeach()
 
-if(WIN32)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(LIB_TARGET "x86_64-pc-windows-msvc")
+if(NOT RUST_COMPILER_TARGET)
+    # Automatically determine the Rust Target Triple.
+    # Note: Users may override automatic target detection by specifying their own. Most likely needed for cross-compiling.
+    #       For reference determining target platform: https://doc.rust-lang.org/nightly/rustc/platform-support.html
+    if(WIN32)
+        # For windows x86/x64, it's easy enough to guess the target.
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            set(RUST_COMPILER_TARGET "x86_64-pc-windows-msvc")
+        else()
+            set(RUST_COMPILER_TARGET "i686-pc-windows-msvc")
+        endif()
+    elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin AND "${CMAKE_OSX_ARCHITECTURES}" MATCHES "^arm64;x86_64$")
+        # Special case for Darwin because we may want to build universal binaries.
+        set(RUST_COMPILER_TARGET "universal-apple-darwin")
     else()
-        set(LIB_TARGET "i686-pc-windows-msvc")
-    endif()
-elseif(ANDROID)
-    if(ANDROID_SYSROOT_ABI STREQUAL "x86")
-        set(LIB_TARGET "i686-linux-android")
-    elseif(ANDROID_SYSROOT_ABI STREQUAL "x86_64")
-        set(LIB_TARGET "x86_64-linux-android")
-    elseif(ANDROID_SYSROOT_ABI STREQUAL "arm")
-        set(LIB_TARGET "arm-linux-androideabi")
-    elseif(ANDROID_SYSROOT_ABI STREQUAL "arm64")
-        set(LIB_TARGET "aarch64-linux-android")
-    endif()
-elseif(IOS)
-    set(LIB_TARGET "universal")
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(LIB_TARGET "x86_64-apple-darwin")
-else()
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(LIB_TARGET "x86_64-unknown-linux-gnu")
-    else()
-        set(LIB_TARGET "i686-unknown-linux-gnu")
+        # Determine default LLVM target triple.
+        execute_process(COMMAND ${rustc_EXECUTABLE} -vV
+            OUTPUT_VARIABLE RUSTC_VV_OUT ERROR_QUIET)
+        string(REGEX REPLACE "^.*host: ([a-zA-Z0-9_\\-]+).*" "\\1" DEFAULT_RUST_COMPILER_TARGET1 "${RUSTC_VV_OUT}")
+        string(STRIP ${DEFAULT_RUST_COMPILER_TARGET1} DEFAULT_RUST_COMPILER_TARGET)
+
+        set(RUST_COMPILER_TARGET "${DEFAULT_RUST_COMPILER_TARGET}")
     endif()
 endif()
 
-if(IOS)
-    set(CARGO_ARGS "lipo")
-else()
-    set(CARGO_ARGS "build")
-    list(APPEND CARGO_ARGS "--target" ${LIB_TARGET})
+set(CARGO_ARGS "build")
+if(NOT "${RUST_COMPILER_TARGET}" MATCHES "^universal-apple-darwin$")
+    # Don't specify the target for macOS universal builds, we'll do that manually for each build.
+    list(APPEND CARGO_ARGS "--target" ${RUST_COMPILER_TARGET})
 endif()
 
+set(RUSTFLAGS "")
 if(NOT CMAKE_BUILD_TYPE)
     set(LIB_BUILD_TYPE "debug")
-elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release" OR ${CMAKE_BUILD_TYPE} STREQUAL "MinSizeRel")
     set(LIB_BUILD_TYPE "release")
     list(APPEND CARGO_ARGS "--release")
+elseif(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+    set(LIB_BUILD_TYPE "release")
+    list(APPEND CARGO_ARGS "--release")
+    set(RUSTFLAGS "-g")
 else()
     set(LIB_BUILD_TYPE "debug")
 endif()
 
-find_package_handle_standard_args( Rust
+find_package_handle_standard_args(Rust
     REQUIRED_VARS cargo_EXECUTABLE
     VERSION_VAR cargo_VERSION
 )

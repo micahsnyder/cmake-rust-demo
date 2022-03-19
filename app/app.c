@@ -8,10 +8,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "cmakerust.h"
+#include "demo-rust.h"
 #include "gen_uuid.h"
 
-int main(void) {
+int main(void)
+{
     char *my_uuid = {0};
 
     my_uuid = gen_uuid();

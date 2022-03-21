@@ -10,7 +10,8 @@ add_executable(app)
 target_sources(app PRIVATE app.c)
 target_link_libraries(app
     PRIVATE
-        demo::lib
+        demo::rust_static_lib
+        demo::static_lib
         demo::gen_uuid)
 if(WIN32)
     target_link_libraries(app

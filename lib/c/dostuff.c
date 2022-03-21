@@ -10,4 +10,6 @@ bool do_the_thing(uint8_t *inout, size_t inout_size)
     for (i = 0; i < inout_size; i++) {
         inout[i] *= 2;
     }
+
+    return true;
 }

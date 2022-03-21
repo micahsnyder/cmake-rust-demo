@@ -10,27 +10,24 @@ The notable feature of this project is [cmake/FindRust.cmake](cmake/FindRust.cma
 Add `FindRust.cmake` to your project's `cmake` directory and use the following to enable Rust support:
 
 ```cmake
-if(MAINTAINER_MODE)
-    set(cbindgen_REQUIRED 1)
-endif()
 find_package(Rust REQUIRED)
 ```
 
 To build a rust library and link it into your app, use:
 
 ```cmake
-add_rust_library( TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib" )
+add_rust_library(TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib")
 
-add_executable( yourexe )
-target_sources( yourexe PRIVATE yourexe.c )
-target_link_libraries( yourexe yourlib )
+add_executable(yourexe)
+target_sources(yourexe PRIVATE yourexe.c)
+target_link_libraries(yourexe yourlib)
 ```
 
 For unit test support, you can use the `add_rust_test()` function, like this:
 
 ```cmake
-add_rust_library( TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib" )
-add_rust_test( NAME yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib" )
+add_rust_library(TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib")
+add_rust_test(NAME yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib")
 ```
 
 And don't forget to enable CTest early in your top-level `CMakeLists.txt` file:
@@ -43,9 +40,19 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 endif()
 ```
 
-## `cbindgen` C API generation support
+## Minimum Rust version
 
-If you set `cbindgen_REQUIRED` as shown above, then `cbindgen` will need to be installed. It will also require a `cbindgen.toml` file next to each `Cargo.toml`.
+You may set the CMake variable `RUSTC_MINIMUM_REQUIRED` to enforce a minimum Rust version, such as "1.56" for the 2021 edition support.
+
+## `cbindgen` and `bindgen` FFI generation
+
+This project demonstrates using `bindgen` and `cbindgen` within the `<src>/lib/rust/build.rs` script to generate the API's at build time.
+
+`cbindgen` is used to generate a `demorust.h` C binding for the Rust exports every time you build. It'll be dropped in the build directory.
+
+`bindgen`, on the otherhand, generates a `sys.rs` Rust binding for the C exports required by the Rust code. Unfortunately, `bindgen` depends on libclang for some features that aren't readily available on all systems. So we only run `bindgen` if you set the `MAINTAINER_MODE` CMake parameter to `ON`. That works out okay, as the `sys.rs` file is dropped into the source directory, not the build directory. But that means you have to remember to build with `MAINTAINER_MODE=ON` any time you change the internal C API's used by the Rust library.
+
+The `cbindgen` and `bindgen` programs don't need to be pre-installed. `Cargo.toml` will pull them in during the build.
 
 ## Building this project
 
@@ -56,7 +63,12 @@ Requirements:
 Run:
 ```bash
 mkdir build && cd build
-cmake .. && cmake --build . && ctest
+cmake .. \
+  -D MAINTAINER_MODE=ON \
+  -D CMAKE_INSTALL_PREFIX=install
+cmake --build .
+ctest -V
+cmake --build . --target install
 ```
 
 ## Vendoring dependencies
@@ -90,6 +102,38 @@ cmake .. && cmake --build . && ctest
 You'll note that the vendored dependencies appear in your source directory. To remove them, you can do this:
 ```bash
 rm -rf **/.cargo
+```
+
+# Installing Rust binaries with CMake
+
+C static libraries don't link in other static libraries. Fully-static builds of projects that are composed of a few different static libraries will result in a collection of static libraries. If you're only providing an application, then you can link them into the app and only install the app. But if you provide a library for others to consume then you may need to install all of the static libraries that compose the features of "the library" you provide for downstream projects.
+
+For example, let's say you've got a C library that may be built as a shared lib AND as a static lib, and you're slowly porting the C code into a Rust static library. You will link your Rust static library into the C library to maintain the original C API for your downstream users. With a shared-build of the C library, the Rust static library will get linked into the shared library and the downstream users never have to know it exists. Buf for a static-build of the C library, the C library is linked *against* your Rust library but they remain two separate libs that must both be linked with the downstream applications. You will need to install both the C static library *and* the Rust static library.
+
+Projects built with CMake can use CMake to install the software directly (e.g. under `/usr/local`) or via a packager like WiX Toolset (Windows) or `.deb` / `.rpm` / `.pkg` packages.
+
+Rust binaries aren't treated quite the same by CMake as native C binaries, but you can use CMake to install them.
+
+## How to install Rust binaries with CMake
+
+The first thing you'll probably need if you want to use CMake to install stuff, whether or not you bundle in some Rust binaries, is to include the GNUEInstallDirs module somewhere at the top of your top-level `CMakeLists.txt`:
+
+```c
+include(GNUInstallDirs)
+```
+
+Now with a regular C library or executable CMake target, you might configure them for installation like this:
+```c
+install(TARGETS demo DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries)
+```
+or:
+```c
+install(TARGETS app DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT programs)
+```
+
+Rust library CMake targets aren't normal CMake binary targets though. They're "custom" targets, which means you will instead have to use `install(FILES` instead of `install(TARGETS`, and then point CMake at the specific file you need installed instead of at a target. Our `FindRust.cmake`'s `add_rust_library()` function makes this easy. WHen you add a Rust library, it sets the target properties such that you can simply use CMake's `$<TARGET_FILE:target>` [generator expression](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html) to provide the file path. In this demo, we configure installation for our `demorust` Rust static library like this:
+```c
+install(FILES $<TARGET_FILE:demorust> DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries)
 ```
 
 ## License

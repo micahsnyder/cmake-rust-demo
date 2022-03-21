@@ -4,14 +4,14 @@ name: Build Test
 # events but only for the main branch
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build_and_test:
-    name: '${{ matrix.os }}: build and test'
+    name: "${{ matrix.os }}: build and test"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -29,24 +29,23 @@ jobs:
       - name: get-cmake
         uses: lukka/get-cmake@latest
 
-      - name: run-cmake
-        uses: lukka/run-cmake@v3.0
-        with:
-          cmakeGenerator: 'Ninja'
-          cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
-          buildDirectory: '${{ runner.workspace }}/build/ninja/'
+      - name: Build project
+        working-directory: "${{ runner.workspace }}/"
+        run: |
+          cmake -B ./build -S ./cmake-rust-demo
+          cmake --build ./build
 
       - name: Run tests
-        working-directory: '${{ runner.workspace }}/build/ninja/'
+        working-directory: "${{ runner.workspace }}/build/"
         run: |
           ctest -VV
 
       - name: Run the app
         run: |
-          ${{ runner.workspace }}/build/ninja/app/app
+          ${{ runner.workspace }}/build/app/app
 
   build_and_test_windows:
-    name: 'windows-latest: build and test'
+    name: "windows-latest: build and test"
     runs-on: windows-latest
 
     steps:
@@ -60,18 +59,17 @@ jobs:
       - name: get-cmake
         uses: lukka/get-cmake@latest
 
-      - name: run-cmake
-        uses: lukka/run-cmake@v3.0
-        with:
-          cmakeGenerator: 'VS16Win64'
-          cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
-          buildDirectory: '${{ runner.workspace }}/build/vs2019/'
+      - name: Build project
+        working-directory: "${{ runner.workspace }}/"
+        run: |
+          cmake -B ./build -S ./cmake-rust-demo -A x64
+          cmake --build ./build
 
       - name: Run tests
-        working-directory: '${{ runner.workspace }}/build/vs2019/'
+        working-directory: "${{ runner.workspace }}/build/"
         run: |
           ctest -VV -C Debug
 
       - name: Run the app
         run: |
-          ${{ runner.workspace }}\\build\\vs2019\\app\\Debug\\app.exe
+          ${{ runner.workspace }}\\build\\app\\Debug\\app.exe

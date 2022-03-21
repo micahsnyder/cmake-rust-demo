@@ -1,19 +1,16 @@
 [package]
 authors = ["Micah Snyder"]
 edition = "2021"
-name = "gen_uuid"
+name = "demorust"
 version = "0.2.0"
 
 [dependencies]
-libc = "0.2.77"
-
-[dependencies.uuid]
-version = "0.8.1"
-features = ["v4"]
+colored = "2.0.0"
 
 [lib]
 crate-type = ["staticlib"]
-name = "gen_uuid"
+name = "demorust"
 
 [build-dependencies]
 cbindgen = "0.20"
+bindgen = "0.59"

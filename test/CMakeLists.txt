@@ -5,15 +5,12 @@
 #
 
 if(WIN32)
-    file(TO_NATIVE_PATH $<TARGET_FILE:demo> LIBDEMO)
+    file(TO_NATIVE_PATH $<TARGET_FILE:demo_static> LIBDEMO)
 else()
-    set(LD_LIBRARY_PATH $<TARGET_FILE_DIR:demo>:$ENV{LD_LIBRARY_PATH})
-    set(LIBDEMO $<TARGET_FILE:demo>)
+    set(LIBDEMO $<TARGET_FILE:demo_static>)
 endif()
 
 set(ENVIRONMENT
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
-    DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
     LIBDEMO=${LIBDEMO}
 )
 

@@ -8,7 +8,7 @@
 
 add_rust_executable(TARGET app_rust
     SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    BINARY_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 # Linking with C libraries is done within `build.rs`
 # Linking with nearby Rust crates is done within `Cargo.toml`

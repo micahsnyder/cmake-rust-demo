@@ -50,7 +50,7 @@
 #   ```cmake
 #   add_rust_library(TARGET yourlib
 #       SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-#       BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+#       BINARY_DIRECTORY "${CMAKE_BINARY_DIR}")
 #   add_library(YourProject::yourlib ALIAS yourlib)
 #
 #   add_executable(yourexe)
@@ -82,7 +82,7 @@
 #   ```cmake
 #   add_rust_test(NAME yourlib
 #       SOURCE_DIRECTORY "${CMAKE_SOURCE_DIR}/path/to/yourlib"
-#       BINARY_DIRECTORY "${CMAKE_BINARY_DIR}/path/to/yourlib"
+#       BINARY_DIRECTORY "${CMAKE_BINARY_DIR}"
 #   )
 #   set_property(TEST yourlib PROPERTY ENVIRONMENT ${ENVIRONMENT})
 #   ```
@@ -103,7 +103,7 @@
 #   ```cmake
 #   add_rust_test(NAME yourlib
 #       SOURCE_DIRECTORY "${CMAKE_SOURCE_DIR}/yourlib"
-#       BINARY_DIRECTORY "${CMAKE_BINARY_DIR}/yourlib"
+#       BINARY_DIRECTORY "${CMAKE_BINARY_DIR}"
 #       PRECOMPILE_TESTS TRUE
 #       DEPENDS ClamAV::libclamav
 #       ENVIRONMENT "${ENVIRONMENT}"
@@ -121,7 +121,7 @@
 #   ```cmake
 #   add_rust_executable(TARGET yourexe
 #       SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-#       BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+#       BINARY_DIRECTORY "${CMAKE_BINARY_DIR}"
 #   )
 #   add_executable(YourProject::yourexe ALIAS yourexe)
 #   ```
@@ -214,15 +214,15 @@ function(add_rust_executable)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if(WIN32)
-        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/${ARGS_TARGET}.exe")
+        set(OUTPUT "${ARGS_BINARY_DIRECTORY}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/${ARGS_TARGET}.exe")
     else()
-        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/${ARGS_TARGET}")
+        set(OUTPUT "${ARGS_BINARY_DIRECTORY}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/${ARGS_TARGET}")
     endif()
 
     file(GLOB_RECURSE EXE_SOURCES "${ARGS_SOURCE_DIRECTORY}/*.rs")
 
     set(MY_CARGO_ARGS ${CARGO_ARGS})
-    list(APPEND MY_CARGO_ARGS "--target-dir" ${CMAKE_CURRENT_BINARY_DIR})
+    list(APPEND MY_CARGO_ARGS "--target-dir" ${ARGS_BINARY_DIRECTORY})
     list(JOIN MY_CARGO_ARGS " " MY_CARGO_ARGS_STRING)
 
     # Build the executable.
@@ -261,9 +261,9 @@ function(add_rust_library)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if(WIN32)
-        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/${ARGS_TARGET}.lib")
+        set(OUTPUT "${ARGS_BINARY_DIRECTORY}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/${ARGS_TARGET}.lib")
     else()
-        set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/lib${ARGS_TARGET}.a")
+        set(OUTPUT "${ARGS_BINARY_DIRECTORY}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}/lib${ARGS_TARGET}.a")
     endif()
 
     file(GLOB_RECURSE LIB_SOURCES "${ARGS_SOURCE_DIRECTORY}/*.rs")
@@ -272,7 +272,7 @@ function(add_rust_library)
     if(ARGS_PRECOMPILE_TESTS)
         list(APPEND MY_CARGO_ARGS "--tests")
     endif()
-    list(APPEND MY_CARGO_ARGS "--target-dir" ${CMAKE_CURRENT_BINARY_DIR})
+    list(APPEND MY_CARGO_ARGS "--target-dir" ${ARGS_BINARY_DIRECTORY})
     list(JOIN MY_CARGO_ARGS " " MY_CARGO_ARGS_STRING)
 
     # Build the library and generate the c-binding
@@ -281,8 +281,8 @@ function(add_rust_library)
             OUTPUT "${OUTPUT}"
             COMMAND ${CMAKE_COMMAND} -E env "CARGO_CMD=build" "CARGO_TARGET_DIR=${ARGS_BINARY_DIRECTORY}" "MAINTAINER_MODE=${MAINTAINER_MODE}" "RUSTFLAGS=\"${RUSTFLAGS}\"" ${cargo_EXECUTABLE} ARGS ${MY_CARGO_ARGS} --target=x86_64-apple-darwin
             COMMAND ${CMAKE_COMMAND} -E env "CARGO_CMD=build" "CARGO_TARGET_DIR=${ARGS_BINARY_DIRECTORY}" "MAINTAINER_MODE=${MAINTAINER_MODE}" "RUSTFLAGS=\"${RUSTFLAGS}\"" ${cargo_EXECUTABLE} ARGS ${MY_CARGO_ARGS} --target=aarch64-apple-darwin
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}"
-            COMMAND lipo ARGS -create ${CMAKE_CURRENT_BINARY_DIR}/x86_64-apple-darwin/${CARGO_BUILD_TYPE}/lib${ARGS_TARGET}.a ${CMAKE_CURRENT_BINARY_DIR}/aarch64-apple-darwin/${CARGO_BUILD_TYPE}/lib${ARGS_TARGET}.a -output "${OUTPUT}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${ARGS_BINARY_DIRECTORY}/${RUST_COMPILER_TARGET}/${CARGO_BUILD_TYPE}"
+            COMMAND lipo ARGS -create ${ARGS_BINARY_DIRECTORY}/x86_64-apple-darwin/${CARGO_BUILD_TYPE}/lib${ARGS_TARGET}.a ${ARGS_BINARY_DIRECTORY}/aarch64-apple-darwin/${CARGO_BUILD_TYPE}/lib${ARGS_TARGET}.a -output "${OUTPUT}"
             WORKING_DIRECTORY "${ARGS_SOURCE_DIRECTORY}"
             DEPENDS ${LIB_SOURCES}
             COMMENT "Building ${ARGS_TARGET} in ${ARGS_BINARY_DIRECTORY} with:  ${cargo_EXECUTABLE} ${MY_CARGO_ARGS_STRING}")
@@ -377,7 +377,7 @@ endif()
 # Determine the native libs required to link w/ rust static libs
 # message(STATUS "Detecting native static libs for rust: ${rustc_EXECUTABLE} --crate-type staticlib --print=native-static-libs /dev/null")
 execute_process(
-    COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}" ${rustc_EXECUTABLE} --crate-type staticlib --print=native-static-libs /dev/null
+    COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_BINARY_DIR}" ${rustc_EXECUTABLE} --crate-type staticlib --print=native-static-libs /dev/null
     OUTPUT_VARIABLE RUST_NATIVE_STATIC_LIBS_OUTPUT
     ERROR_VARIABLE RUST_NATIVE_STATIC_LIBS_ERROR
     RESULT_VARIABLE RUST_NATIVE_STATIC_LIBS_RESULT

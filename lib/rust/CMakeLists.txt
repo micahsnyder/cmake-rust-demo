@@ -8,7 +8,7 @@
 #
 add_rust_library(TARGET demorust
     SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    BINARY_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 if (WIN32)
     # You can add link library dependencies for the rust libarry target, if you need.

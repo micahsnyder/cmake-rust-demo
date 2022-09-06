@@ -2,7 +2,7 @@
 
 ![Build Test](https://github.com/micahsnyder/cmake-rust-demo/workflows/Build%20Test/badge.svg)
 
-A C CMake demo using Rust static library components.
+A C CMake demo using Rust static library components and building Rust executables.
 The notable feature of this project is [cmake/FindRust.cmake](cmake/FindRust.cmake)
 
 ## Usage
@@ -13,21 +13,34 @@ Add `FindRust.cmake` to your project's `cmake` directory and use the following t
 find_package(Rust REQUIRED)
 ```
 
+### Rust-based C-style Static Libraries
+
 To build a rust library and link it into your app, use:
 
 ```cmake
-add_rust_library(TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib")
+add_rust_library(TARGET yourlib
+  SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
 
 add_executable(yourexe)
 target_sources(yourexe PRIVATE yourexe.c)
 target_link_libraries(yourexe yourlib)
 ```
 
+### Rust Library Unit Tests
+
 For unit test support, you can use the `add_rust_test()` function, like this:
 
 ```cmake
-add_rust_library(TARGET yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib")
-add_rust_test(NAME yourlib WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/yourlib")
+add_rust_library(TARGET yourlib
+  SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+add_rust_test(NAME yourlib
+  SOURCE_DIRECTORY "${CMAKE_SOURCE_DIR}/path/to/yourlib"
+  BINARY_DIRECTORY "${CMAKE_BINARY_DIR}/path/to/yourlib"
+)
 ```
 
 And don't forget to enable CTest early in your top-level `CMakeLists.txt` file:
@@ -38,6 +51,18 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     include(CTest)
     enable_testing()
 endif()
+```
+
+### Rust-based Executables
+
+To build a rust executable use:
+
+```cmake
+add_rust_executable(TARGET yourexe
+  SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+add_executable(YourProject::yourexe ALIAS yourexe)
 ```
 
 ## Minimum Rust version
@@ -118,28 +143,28 @@ Rust binaries aren't treated quite the same by CMake as native C binaries, but y
 
 The first thing you'll probably need if you want to use CMake to install stuff, whether or not you bundle in some Rust binaries, is to include the GNUEInstallDirs module somewhere at the top of your top-level `CMakeLists.txt`:
 
-```c
+```cmake
 include(GNUInstallDirs)
 ```
 
 Now with a regular C library or executable CMake target, you might configure them for installation like this:
-```c
+```cmake
 install(TARGETS demo DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries)
 ```
 or:
-```c
+```cmake
 install(TARGETS app DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT programs)
 ```
 
-Rust library CMake targets aren't normal CMake binary targets though. They're "custom" targets, which means you will instead have to use `install(FILES` instead of `install(TARGETS`, and then point CMake at the specific file you need installed instead of at a target. Our `FindRust.cmake`'s `add_rust_library()` function makes this easy. WHen you add a Rust library, it sets the target properties such that you can simply use CMake's `$<TARGET_FILE:target>` [generator expression](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html) to provide the file path. 
+Rust library CMake targets aren't normal CMake binary targets though. They're "custom" targets, which means you will instead have to use `install(FILES` instead of `install(TARGETS`, and then point CMake at the specific file you need installed instead of at a target. Our `FindRust.cmake`'s `add_rust_library()` function makes this easy. When you add a Rust library, it sets the target properties such that you can simply use CMake's `$<TARGET_FILE:target>` [generator expression](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html) to provide the file path.
 
 In this demo, we configure installation for our `demorust` Rust static library like this:
-```c
+```cmake
 install(FILES $<TARGET_FILE:demorust> DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries)
 ```
 
 And for our `app_rust` Rust executable, we install like this:
-```c
+```cmake
 get_target_property(app_rust_EXECUTABLE app_rust IMPORTED_LOCATION)
 install(PROGRAMS ${app_rust_EXECUTABLE} DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT programs)
 ```

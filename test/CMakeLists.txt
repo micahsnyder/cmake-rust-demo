@@ -14,5 +14,8 @@ set(ENVIRONMENT
     LIBDEMO=${LIBDEMO}
 )
 
-add_rust_test(NAME demorust WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/lib/rust")
+add_rust_test(NAME demorust
+    SOURCE_DIRECTORY "${CMAKE_SOURCE_DIR}/lib/rust"
+    BINARY_DIRECTORY "${CMAKE_BINARY_DIR}/lib/rust"
+)
 set_property(TEST demorust PROPERTY ENVIRONMENT ${ENVIRONMENT})

@@ -6,7 +6,10 @@
 # Note: The rust port will be compiled to static library target and must be added as
 # a dependency to both the C object targets and shared/static library targets.
 #
-add_rust_library(TARGET demorust WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+add_rust_library(TARGET demorust
+    SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    BINARY_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
 if (WIN32)
     # You can add link library dependencies for the rust libarry target, if you need.
     target_link_libraries(demorust PUBLIC INTERFACE Userenv)

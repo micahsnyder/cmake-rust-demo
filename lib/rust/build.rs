@@ -41,6 +41,9 @@ fn main() -> Result<(), &'static str> {
     // FindRust.cmake defines $CARGO_CMD so we can differentiate.
     let cargo_cmd = env::var("CARGO_CMD").unwrap_or_else(|_| "".into());
 
+    // If this environmment variable chnages, we should re-run this script.
+    println!("cargo:rerun-if-env-changed=LIBDEMO");
+
     match cargo_cmd.as_str() {
         "build" => {
             // Generate bindings as a part of the build.
@@ -61,8 +64,6 @@ fn main() -> Result<(), &'static str> {
 
         "test" => {
             // Link test executable with library dependencies.
-            println!("cargo:rerun-if-env-changed=LIBDEMO");
-
             for var in LIB_ENV_LINK {
                 if !search_and_link_lib(var)? {
                     eprintln!("Undefined library dependency environment variable: {}", var);
@@ -88,7 +89,7 @@ fn main() -> Result<(), &'static str> {
 /// Use bindgen to generate Rust bindings to call into C libraries.
 fn generate_rust_bindings() -> Result<(), &'static str> {
     let build_dir = PathBuf::from(env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| ".".into()));
-    let build_include_path = format!("-I{}", build_dir.join("..").to_str().unwrap());
+    let build_include_path = format!("-I{}", build_dir.join(".").to_str().unwrap());
 
     // Configure and generate bindings.
     let mut builder = builder()
@@ -121,6 +122,8 @@ fn generate_rust_bindings() -> Result<(), &'static str> {
         .expect("Unable to generate Rust bindings for C code")
         .write_to_file(BINDGEN_OUTPUT_FILE)
         .expect("Failed to write Rust bindings to output file");
+
+    eprintln!("bindgen outputting \"{}\"", BINDGEN_OUTPUT_FILE);
 
     Ok(())
 }
